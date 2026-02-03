@@ -1,0 +1,76 @@
+@page "/test/result"
+@using Microsoft.AspNetCore.WebUtilities
+@inject NavigationManager Navigation
+
+<PageTitle>테스트 결과 - AINewsHub</PageTitle>
+
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-lg mx-auto bg-white rounded-lg shadow-lg p-8 text-center">
+        <div class="text-6xl mb-4">
+            @(_level switch
+            {
+                "Advanced" => "T",
+                "Intermediate" => "*",
+                _ => "~"
+            })
+        </div>
+
+        <h1 class="text-3xl font-bold mb-2">테스트 완료!</h1>
+
+        <div class="text-5xl font-bold text-blue-500 my-6">
+            @_correct / @_total
+        </div>
+
+        <p class="text-xl text-gray-600 mb-8">
+            당신의 레벨: <span class="font-bold">@GetLevelName(_level)</span>
+        </p>
+
+        <div class="bg-gray-100 rounded-lg p-4 mb-8">
+            <p class="text-sm text-gray-500">
+                @GetLevelDescription(_level)
+            </p>
+        </div>
+
+        <div class="space-y-4">
+            <a href="/preferences" class="block w-full bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 transition">
+                태그 선호도 설정하기
+            </a>
+            <a href="/" class="block w-full border border-gray-300 py-3 rounded-lg hover:bg-gray-50 transition">
+                홈으로 돌아가기
+            </a>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _level = "Beginner";
+    private int _correct = 0;
+    private int _total = 8;
+
+    protected override void OnInitialized()
+    {
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        var query = QueryHelpers.ParseQuery(uri.Query);
+
+        if (query.TryGetValue("level", out var level))
+            _level = level.ToString();
+        if (query.TryGetValue("correct", out var correct) && int.TryParse(correct, out var c))
+            _correct = c;
+        if (query.TryGetValue("total", out var total) && int.TryParse(total, out var t))
+            _total = t;
+    }
+
+    private string GetLevelName(string level) => level switch
+    {
+        "Advanced" => "고급 (Advanced)",
+        "Intermediate" => "중급 (Intermediate)",
+        _ => "입문 (Beginner)"
+    };
+
+    private string GetLevelDescription(string level) => level switch
+    {
+        "Advanced" => "AI 분야에 깊은 이해를 가지고 계시네요! 최신 연구와 고급 기술 관련 뉴스를 추천해 드립니다.",
+        "Intermediate" => "AI의 기본 개념을 잘 이해하고 계십니다. 실용적인 응용과 새로운 트렌드 관련 뉴스를 추천해 드립니다.",
+        _ => "AI 학습을 시작하시는군요! 기초 개념과 입문자 친화적인 뉴스를 추천해 드립니다."
+    };
+}

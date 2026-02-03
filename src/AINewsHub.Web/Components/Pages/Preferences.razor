@@ -1,0 +1,187 @@
+@page "/preferences"
+@using AINewsHub.Core.Interfaces
+@using AINewsHub.Core.Entities
+@using AINewsHub.Core.Enums
+@inject ITagPreferenceService TagPreferenceService
+@inject IUserService UserService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+<PageTitle>태그 선호도 설정 - AINewsHub</PageTitle>
+
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-6">태그 선호도 설정</h1>
+
+    @if (_loading)
+    {
+        <div class="flex items-center justify-center py-12">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        </div>
+    }
+    else
+    {
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Must Include Tags -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-semibold mb-2 flex items-center">
+                    <span class="text-2xl mr-2">[+]</span>
+                    관심 태그 선택 (최대 5개)
+                </h2>
+                <p class="text-gray-500 text-sm mb-4">"이 주제는 꼭 포함해주세요"</p>
+
+                <div class="flex flex-wrap gap-2">
+                    @foreach (var tag in _allTags)
+                    {
+                        var isSelected = _mustIncludeTags.Contains(tag.Id);
+                        var isExcluded = _excludeTags.Contains(tag.Id);
+                        var isDisabled = !isSelected && _mustIncludeTags.Count >= 5;
+
+                        <button @onclick="() => ToggleMustInclude(tag.Id)"
+                                disabled="@(isExcluded || isDisabled)"
+                                class="px-3 py-1 rounded-full text-sm transition @(isSelected ? "bg-blue-500 text-white" : isExcluded || isDisabled ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-gray-200 hover:bg-gray-300")">
+                            @tag.Name
+                        </button>
+                    }
+                </div>
+
+                <p class="text-sm text-gray-500 mt-4">
+                    선택됨: <span class="font-semibold">@_mustIncludeTags.Count</span>/5
+                </p>
+            </div>
+
+            <!-- Exclude Tags -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-semibold mb-2 flex items-center">
+                    <span class="text-2xl mr-2">[X]</span>
+                    제외 태그 선택 (최대 10개)
+                </h2>
+                <p class="text-gray-500 text-sm mb-4">"이 주제는 관심 없어요"</p>
+
+                <div class="flex flex-wrap gap-2">
+                    @foreach (var tag in _allTags)
+                    {
+                        var isSelected = _excludeTags.Contains(tag.Id);
+                        var isMustInclude = _mustIncludeTags.Contains(tag.Id);
+                        var isDisabled = !isSelected && _excludeTags.Count >= 10;
+
+                        <button @onclick="() => ToggleExclude(tag.Id)"
+                                disabled="@(isMustInclude || isDisabled)"
+                                class="px-3 py-1 rounded-full text-sm transition @(isSelected ? "bg-red-500 text-white" : isMustInclude || isDisabled ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-gray-200 hover:bg-gray-300")">
+                            @tag.Name
+                        </button>
+                    }
+                </div>
+
+                <p class="text-sm text-gray-500 mt-4">
+                    선택됨: <span class="font-semibold">@_excludeTags.Count</span>/10
+                </p>
+            </div>
+        </div>
+
+        <div class="mt-8 flex justify-end gap-4">
+            <a href="/" class="px-6 py-3 border rounded-lg hover:bg-gray-50">
+                취소
+            </a>
+            <button @onclick="SavePreferences"
+                    disabled="@_saving"
+                    class="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50">
+                @if (_saving)
+                {
+                    <span>저장 중...</span>
+                }
+                else
+                {
+                    <span>저장하기</span>
+                }
+            </button>
+        </div>
+    }
+</div>
+
+@code {
+    private User? _user;
+    private List<Tag> _allTags = new();
+    private HashSet<int> _mustIncludeTags = new();
+    private HashSet<int> _excludeTags = new();
+    private bool _loading = true;
+    private bool _saving = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var storedId = await JS.InvokeAsync<string?>("localStorage.getItem", "snowflakeId");
+
+            if (string.IsNullOrEmpty(storedId) || !long.TryParse(storedId, out var snowflakeId))
+            {
+                Navigation.NavigateTo("/");
+                return;
+            }
+
+            _user = await UserService.GetUserBySnowflakeIdAsync(snowflakeId);
+            if (_user == null)
+            {
+                Navigation.NavigateTo("/");
+                return;
+            }
+
+            _allTags = (await TagPreferenceService.GetAllTagsAsync()).ToList();
+
+            // Load existing preferences
+            foreach (var pref in _user.TagPreferences)
+            {
+                if (pref.PreferenceType == TagPreferenceType.MustInclude)
+                    _mustIncludeTags.Add(pref.TagId);
+                else if (pref.PreferenceType == TagPreferenceType.Exclude)
+                    _excludeTags.Add(pref.TagId);
+            }
+
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ToggleMustInclude(int tagId)
+    {
+        if (_mustIncludeTags.Contains(tagId))
+            _mustIncludeTags.Remove(tagId);
+        else if (_mustIncludeTags.Count < 5 && !_excludeTags.Contains(tagId))
+            _mustIncludeTags.Add(tagId);
+    }
+
+    private void ToggleExclude(int tagId)
+    {
+        if (_excludeTags.Contains(tagId))
+            _excludeTags.Remove(tagId);
+        else if (_excludeTags.Count < 10 && !_mustIncludeTags.Contains(tagId))
+            _excludeTags.Add(tagId);
+    }
+
+    private async Task SavePreferences()
+    {
+        if (_user == null)
+            return;
+
+        _saving = true;
+
+        try
+        {
+            await TagPreferenceService.SetPreferencesAsync(
+                _user.Id,
+                _mustIncludeTags,
+                _excludeTags);
+
+            await JS.InvokeVoidAsync("alert", "선호도가 저장되었습니다!");
+            Navigation.NavigateTo("/");
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"저장 실패: {ex.Message}");
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

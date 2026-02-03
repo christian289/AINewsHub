@@ -1,0 +1,187 @@
+@page "/test"
+@using AINewsHub.Core.Interfaces
+@using AINewsHub.Core.Entities
+@using System.Text.Json
+@inject ITestService TestService
+@inject IUserService UserService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+<PageTitle>레벨 테스트 - AINewsHub</PageTitle>
+
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-6">레벨 테스트</h1>
+
+    @if (_loading)
+    {
+        <div class="flex items-center justify-center py-12">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        </div>
+    }
+    else if (!_canTest)
+    {
+        <div class="bg-yellow-100 border-l-4 border-yellow-500 p-4">
+            <p class="text-yellow-700">
+                재테스트는 마지막 테스트로부터 7일 후에 가능합니다.
+                @if (_nextTestDate.HasValue)
+                {
+                    <span>다음 테스트 가능일: @_nextTestDate.Value.ToString("yyyy-MM-dd")</span>
+                }
+            </p>
+            <a href="/" class="text-blue-500 hover:underline mt-2 inline-block">홈으로 돌아가기</a>
+        </div>
+    }
+    else if (_questionSet != null && !_submitted)
+    {
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <div class="mb-4 text-sm text-gray-500">
+                문항 @(_currentQuestionIndex + 1) / @_questions.Count
+            </div>
+
+            <div class="w-full bg-gray-200 rounded-full h-2 mb-6">
+                <div class="bg-blue-500 h-2 rounded-full transition-all"
+                     style="width: @((_currentQuestionIndex + 1) * 100 / _questions.Count)%"></div>
+            </div>
+
+            @if (_currentQuestionIndex < _questions.Count)
+            {
+                var question = _questions[_currentQuestionIndex];
+                var options = JsonSerializer.Deserialize<string[]>(question.OptionsJson) ?? Array.Empty<string>();
+
+                <h2 class="text-xl font-semibold mb-6">@question.Text</h2>
+
+                <div class="space-y-3">
+                    @for (var i = 0; i < options.Length; i++)
+                    {
+                        var optionIndex = i;
+                        var isSelected = _answers.TryGetValue(question.Id, out var selected) && selected == optionIndex;
+
+                        <button @onclick="() => SelectAnswer(question.Id, optionIndex)"
+                                class="w-full text-left p-4 rounded-lg border-2 transition @(isSelected ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300")">
+                            <span class="font-semibold mr-2">@((char)('A' + i)).</span>
+                            @options[i]
+                        </button>
+                    }
+                </div>
+
+                <div class="mt-8 flex justify-between">
+                    <button @onclick="PreviousQuestion"
+                            disabled="@(_currentQuestionIndex == 0)"
+                            class="px-6 py-2 rounded-lg border @(_currentQuestionIndex == 0 ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-100")">
+                        이전
+                    </button>
+
+                    @if (_currentQuestionIndex < _questions.Count - 1)
+                    {
+                        <button @onclick="NextQuestion"
+                                disabled="@(!_answers.ContainsKey(question.Id))"
+                                class="px-6 py-2 bg-blue-500 text-white rounded-lg @(!_answers.ContainsKey(question.Id) ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-600")">
+                            다음
+                        </button>
+                    }
+                    else
+                    {
+                        <button @onclick="SubmitTest"
+                                disabled="@(_answers.Count < _questions.Count)"
+                                class="px-6 py-2 bg-green-500 text-white rounded-lg @(_answers.Count < _questions.Count ? "opacity-50 cursor-not-allowed" : "hover:bg-green-600")">
+                            제출하기
+                        </button>
+                    }
+                </div>
+            }
+        </div>
+    }
+    else if (_submitted)
+    {
+        <div class="bg-white rounded-lg shadow-lg p-6 text-center">
+            <h2 class="text-2xl font-bold mb-4">테스트 완료!</h2>
+            <p class="text-gray-600 mb-6">결과를 확인하고 있습니다...</p>
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+        </div>
+    }
+</div>
+
+@code {
+    private User? _user;
+    private QuestionSet? _questionSet;
+    private List<Question> _questions = new();
+    private Dictionary<int, int> _answers = new();
+    private int _currentQuestionIndex = 0;
+    private bool _loading = true;
+    private bool _canTest = true;
+    private bool _submitted = false;
+    private DateTime? _nextTestDate;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var storedId = await JS.InvokeAsync<string?>("localStorage.getItem", "snowflakeId");
+
+            if (string.IsNullOrEmpty(storedId) || !long.TryParse(storedId, out var snowflakeId))
+            {
+                Navigation.NavigateTo("/");
+                return;
+            }
+
+            _user = await UserService.GetUserBySnowflakeIdAsync(snowflakeId);
+            if (_user == null)
+            {
+                Navigation.NavigateTo("/");
+                return;
+            }
+
+            _canTest = await UserService.CanRetestAsync(snowflakeId);
+            if (!_canTest)
+            {
+                _nextTestDate = _user.LastTestDate?.AddDays(7);
+            }
+            else
+            {
+                _questionSet = await TestService.GetActiveQuestionSetAsync();
+                if (_questionSet != null)
+                {
+                    _questions = _questionSet.Questions.OrderBy(q => q.OrderIndex).ToList();
+                }
+            }
+
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void SelectAnswer(int questionId, int optionIndex)
+    {
+        _answers[questionId] = optionIndex;
+    }
+
+    private void NextQuestion()
+    {
+        if (_currentQuestionIndex < _questions.Count - 1)
+            _currentQuestionIndex++;
+    }
+
+    private void PreviousQuestion()
+    {
+        if (_currentQuestionIndex > 0)
+            _currentQuestionIndex--;
+    }
+
+    private async Task SubmitTest()
+    {
+        if (_user == null || _questionSet == null || _answers.Count < _questions.Count)
+            return;
+
+        _submitted = true;
+        StateHasChanged();
+
+        var (level, correctAnswers) = await TestService.SubmitTestAsync(
+            _user.Id,
+            _questionSet.Id,
+            _answers);
+
+        // Navigate to results page with parameters
+        Navigation.NavigateTo($"/test/result?level={level}&correct={correctAnswers}&total={_questions.Count}");
+    }
+}

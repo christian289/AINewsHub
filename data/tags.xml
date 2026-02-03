@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Tags>
+  <!-- Core AI Models -->
+  <Tag Name="LLM" Category="Models" />
+  <Tag Name="GPT" Category="Models" />
+  <Tag Name="Claude" Category="Models" />
+  <Tag Name="Gemini" Category="Models" />
+  <Tag Name="Llama" Category="Models" />
+  <Tag Name="Mistral" Category="Models" />
+  <Tag Name="Phi" Category="Models" />
+  <Tag Name="Qwen" Category="Models" />
+
+  <!-- Techniques -->
+  <Tag Name="RAG" Category="Techniques" />
+  <Tag Name="Fine-tuning" Category="Techniques" />
+  <Tag Name="RLHF" Category="Techniques" />
+  <Tag Name="DPO" Category="Techniques" />
+  <Tag Name="Prompt Engineering" Category="Techniques" />
+  <Tag Name="Chain of Thought" Category="Techniques" />
+  <Tag Name="Few-shot Learning" Category="Techniques" />
+  <Tag Name="Zero-shot Learning" Category="Techniques" />
+  <Tag Name="In-Context Learning" Category="Techniques" />
+  <Tag Name="Instruction Tuning" Category="Techniques" />
+
+  <!-- Architecture -->
+  <Tag Name="Transformer" Category="Architecture" />
+  <Tag Name="Attention" Category="Architecture" />
+  <Tag Name="Embedding" Category="Architecture" />
+  <Tag Name="Tokenization" Category="Architecture" />
+  <Tag Name="Context Window" Category="Architecture" />
+  <Tag Name="MoE" Category="Architecture" />
+
+  <!-- Multimodal -->
+  <Tag Name="Multimodal" Category="Multimodal" />
+  <Tag Name="Vision" Category="Multimodal" />
+  <Tag Name="Audio" Category="Multimodal" />
+  <Tag Name="Text-to-Image" Category="Multimodal" />
+  <Tag Name="Image-to-Text" Category="Multimodal" />
+  <Tag Name="Speech-to-Text" Category="Multimodal" />
+
+  <!-- Tools & Platforms -->
+  <Tag Name="MCP" Category="Tools" />
+  <Tag Name="Tool Use" Category="Tools" />
+  <Tag Name="Function Calling" Category="Tools" />
+  <Tag Name="Agents" Category="Tools" />
+  <Tag Name="Agentic AI" Category="Tools" />
+  <Tag Name="Claude Code" Category="Tools" />
+  <Tag Name="GitHub Copilot" Category="Tools" />
+  <Tag Name="Cursor" Category="Tools" />
+  <Tag Name="LangChain" Category="Tools" />
+  <Tag Name="LlamaIndex" Category="Tools" />
+
+  <!-- Safety & Ethics -->
+  <Tag Name="AI Safety" Category="Safety" />
+  <Tag Name="Alignment" Category="Safety" />
+  <Tag Name="Constitutional AI" Category="Safety" />
+  <Tag Name="RLAIF" Category="Safety" />
+  <Tag Name="Hallucination" Category="Safety" />
+  <Tag Name="Bias" Category="Safety" />
+  <Tag Name="Red Teaming" Category="Safety" />
+  <Tag Name="Jailbreak" Category="Safety" />
+
+  <!-- Infrastructure -->
+  <Tag Name="Inference" Category="Infrastructure" />
+  <Tag Name="Quantization" Category="Infrastructure" />
+  <Tag Name="Distillation" Category="Infrastructure" />
+  <Tag Name="Deployment" Category="Infrastructure" />
+  <Tag Name="API" Category="Infrastructure" />
+  <Tag Name="SDK" Category="Infrastructure" />
+  <Tag Name="Cloud" Category="Infrastructure" />
+  <Tag Name="Edge AI" Category="Infrastructure" />
+  <Tag Name="vLLM" Category="Infrastructure" />
+  <Tag Name="Ollama" Category="Infrastructure" />
+
+  <!-- Research -->
+  <Tag Name="Benchmark" Category="Research" />
+  <Tag Name="Evaluation" Category="Research" />
+  <Tag Name="Scaling Laws" Category="Research" />
+  <Tag Name="Emergent Abilities" Category="Research" />
+  <Tag Name="Reasoning" Category="Research" />
+  <Tag Name="Math" Category="Research" />
+  <Tag Name="Coding" Category="Research" />
+  <Tag Name="Summarization" Category="Research" />
+  <Tag Name="Translation" Category="Research" />
+</Tags>

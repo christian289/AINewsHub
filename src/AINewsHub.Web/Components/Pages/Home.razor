@@ -1,0 +1,156 @@
+@page "/"
+@using AINewsHub.Core.Interfaces
+@using AINewsHub.Core.Entities
+@inject IUserService UserService
+@inject ISnowflakeIdGenerator SnowflakeGenerator
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+<PageTitle>AINewsHub - AI 뉴스 큐레이션</PageTitle>
+
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-4xl font-bold mb-4">AINewsHub</h1>
+    <p class="text-xl text-gray-600 mb-8">AI 기사 수집 및 맞춤형 뉴스레터 서비스</p>
+
+    @if (_loading)
+    {
+        <div class="flex items-center justify-center py-12">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        </div>
+    }
+    else if (_user != null)
+    {
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-2xl font-semibold mb-4">환영합니다!</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <p class="text-gray-600">Snowflake ID</p>
+                    <p class="font-mono text-lg">@_user.SnowflakeId</p>
+                </div>
+                <div>
+                    <p class="text-gray-600">현재 레벨</p>
+                    <p class="text-lg font-semibold">@_user.Level</p>
+                </div>
+            </div>
+
+            <div class="mt-6 space-y-4">
+                <a href="/test" class="inline-block bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition">
+                    @if (_user.TestCount == 0)
+                    {
+                        <span>레벨 테스트 시작하기</span>
+                    }
+                    else
+                    {
+                        <span>재테스트하기</span>
+                    }
+                </a>
+
+                <a href="/preferences" class="inline-block bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition ml-4">
+                    태그 선호도 설정
+                </a>
+            </div>
+
+            <div class="mt-8 p-4 bg-gray-100 rounded-lg">
+                <h3 class="font-semibold mb-2">RSS 피드 URL</h3>
+                <div class="flex items-center gap-2">
+                    <code class="bg-white px-3 py-2 rounded flex-1 overflow-x-auto">
+                        @($"/rss/{_user.SnowflakeId}")
+                    </code>
+                    <button @onclick="CopyRssUrl" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                        복사
+                    </button>
+                </div>
+                <p class="text-sm text-gray-500 mt-2">
+                    이 URL을 RSS 리더에 추가하여 맞춤 뉴스를 받아보세요.
+                </p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-2xl font-semibold mb-4">시작하기</h2>
+            <p class="text-gray-600 mb-4">
+                회원가입 없이 바로 시작할 수 있습니다.
+                고유한 Snowflake ID가 자동으로 생성됩니다.
+            </p>
+            <button @onclick="CreateUser" class="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition">
+                새로 시작하기
+            </button>
+
+            <div class="mt-6 border-t pt-6">
+                <h3 class="font-semibold mb-2">기존 ID가 있나요?</h3>
+                <div class="flex gap-2">
+                    <input @bind="_rssUrlInput"
+                           placeholder="RSS URL을 입력하세요"
+                           class="flex-1 px-4 py-2 border rounded-lg" />
+                    <button @onclick="RecoverUser" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600">
+                        복구하기
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private User? _user;
+    private bool _loading = true;
+    private string _rssUrlInput = "";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Try to get existing Snowflake ID from localStorage
+            var storedId = await JS.InvokeAsync<string?>("localStorage.getItem", "snowflakeId");
+
+            if (!string.IsNullOrEmpty(storedId) && long.TryParse(storedId, out var snowflakeId))
+            {
+                _user = await UserService.GetUserBySnowflakeIdAsync(snowflakeId);
+            }
+
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CreateUser()
+    {
+        _loading = true;
+        _user = await UserService.CreateUserAsync();
+        await JS.InvokeVoidAsync("localStorage.setItem", "snowflakeId", _user.SnowflakeId.ToString());
+        _loading = false;
+    }
+
+    private async Task RecoverUser()
+    {
+        if (string.IsNullOrWhiteSpace(_rssUrlInput))
+            return;
+
+        try
+        {
+            _loading = true;
+            _user = await UserService.RecoverUserFromRssUrlAsync(_rssUrlInput);
+            await JS.InvokeVoidAsync("localStorage.setItem", "snowflakeId", _user.SnowflakeId.ToString());
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"복구 실패: {ex.Message}");
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task CopyRssUrl()
+    {
+        if (_user != null)
+        {
+            var url = $"/rss/{_user.SnowflakeId}";
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", url);
+            await JS.InvokeVoidAsync("alert", "RSS URL이 복사되었습니다!");
+        }
+    }
+}
