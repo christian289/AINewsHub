@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AINewsHub.AppHost/AINewsHub.AppHost.csproj" />
+    <Project Path="src/AINewsHub.ServiceDefaults/AINewsHub.ServiceDefaults.csproj" />
+    <Project Path="src/AINewsHub.Core/AINewsHub.Core.csproj" />
+    <Project Path="src/AINewsHub.Infrastructure/AINewsHub.Infrastructure.csproj" />
+    <Project Path="src/AINewsHub.Web/AINewsHub.Web.csproj" />
+    <Project Path="src/AINewsHub.CrawlerService/AINewsHub.CrawlerService.csproj" />
+    <Project Path="src/AINewsHub.NewsletterService/AINewsHub.NewsletterService.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AINewsHub.Core.Tests/AINewsHub.Core.Tests.csproj" />
+    <Project Path="tests/AINewsHub.Integration.Tests/AINewsHub.Integration.Tests.csproj" />
+  </Folder>
+</Solution>
